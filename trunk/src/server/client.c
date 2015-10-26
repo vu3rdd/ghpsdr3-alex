@@ -154,7 +154,6 @@ char* parse_command(CLIENT* client,char* command) {
                     if(token!=NULL) {
                         client->iq_port=atoi(token);
                     }
-
                     //if(pthread_create(&receiver[client->receiver].audio_thread_id,NULL,audio_thread,&receiver[client->receiver])!=0) {
                     if(pthread_create(&receiver[client->receiver].audio_thread_id,NULL,audio_thread,client)!=0) {
                         fprintf(stderr,"failed to create audio thread for rx %d\n",client->receiver);

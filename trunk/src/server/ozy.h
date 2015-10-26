@@ -56,6 +56,7 @@ void ozy_stop_record();
 
 void process_ozy_input_buffer(unsigned char* buffer);
 
+void write_ozy_output_buffer_ozy(void);
 void write_ozy_output_buffer_metis(void);
 void write_ozy_output_buffer_hermes(void);
 

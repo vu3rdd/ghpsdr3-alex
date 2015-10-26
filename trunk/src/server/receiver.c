@@ -129,7 +129,6 @@ char* set_frequency(CLIENT* client,long frequency) {
     if(client->receiver<0) {
         return RECEIVER_INVALID;
     }
-
     receiver[client->receiver].frequency=frequency;
     receiver[client->receiver].frequency_changed=1;
 

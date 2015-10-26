@@ -108,7 +108,9 @@ int main(int argc,char* argv[]) {
             exit(1);
         }
         ozy_set_buffers(2, hermes);
-    }
+    } else
+        /* OZY */
+        ozy_set_buffers(1, 0);
 
     init_receivers();
     init_bandscope();

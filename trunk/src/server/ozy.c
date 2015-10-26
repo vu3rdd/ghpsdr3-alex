@@ -124,6 +124,15 @@ static int tx_sample_count=0;
 static int j16=0;
 
 static unsigned char control_in[5]={0x00,0x00,0x00,0x00,0x00};
+
+static unsigned char control_out_ozy[5]={
+  MOX_DISABLED,
+  CONFIG_MERCURY | MERCURY_122_88MHZ_SOURCE | MERCURY_10MHZ_SOURCE | MIC_SOURCE_PENELOPE | SPEED_96KHZ,
+  MODE_OTHERS,
+  ALEX_ATTENUATION_0DB | LT2208_GAIN_OFF | LT2208_DITHER_ON | LT2208_RANDOM_ON,
+  DUPLEX
+};
+
 static unsigned char control_out_metis[5]={
   MOX_DISABLED,
   CONFIG_BOTH | MERCURY_122_88MHZ_SOURCE | MERCURY_10MHZ_SOURCE | MIC_SOURCE_PENELOPE | SPEED_96KHZ,
@@ -317,11 +326,16 @@ void ozy_set_hex_image(const char *s) {
 
 void ozy_set_buffers(int buffers, int hermes) {
     ozy_buffers=buffers;
+
     if (hermes) {
        control_out = control_out_hermes;
        write_ozy_output_buffer = write_ozy_output_buffer_hermes;
-    } else {
+    } if (metis) {
+		control_out = control_out_metis;
         write_ozy_output_buffer = write_ozy_output_buffer_metis;
+    } else {
+		control_out = control_out_ozy;
+        write_ozy_output_buffer = write_ozy_output_buffer_ozy;
     }
 }
 
@@ -630,7 +644,10 @@ ozy_close();
     sleep(5);
 ozy_open();
     ozy_set_led(1,1);
-    ozy_load_fpga(ozy_fpga);
+    if (!ozy_load_fpga(ozy_fpga)) {
+	    fprintf(stderr,"Unable to load FPGA firmware.\n");
+	    exit(2);
+    }
     ozy_set_led(1,0);
     ozy_close();
 
@@ -732,6 +749,55 @@ fprintf(stderr,"restarting playback: %s\n",filename);
         usleep(playback_sleep);
     }
 }
+
+void write_ozy_output_buffer_ozy() {
+    int bytes;
+
+    ozy_output_buffer[0]=SYNC;
+    ozy_output_buffer[1]=SYNC;
+    ozy_output_buffer[2]=SYNC;
+
+    if(configure>0) {
+        configure--;
+        ozy_output_buffer[3]=control_out[0];
+        ozy_output_buffer[4]=control_out[1];
+        ozy_output_buffer[5]=control_out[2];
+        ozy_output_buffer[6]=control_out[3];
+        ozy_output_buffer[7]=control_out[4];
+    } else if(receiver[current_receiver].frequency_changed) {
+        fprintf(stderr,"sending frequency to %d:  %ld\n",current_receiver,receiver[current_receiver].frequency);
+        ozy_output_buffer[3]=control_out[0]|((current_receiver+2)<<1);
+        ozy_output_buffer[4]=receiver[current_receiver].frequency>>24;
+        ozy_output_buffer[5]=receiver[current_receiver].frequency>>16;
+        ozy_output_buffer[6]=receiver[current_receiver].frequency>>8;
+        ozy_output_buffer[7]=receiver[current_receiver].frequency;
+        receiver[current_receiver].frequency_changed=0;
+    } else {
+        ozy_output_buffer[3]=control_out[0];
+        ozy_output_buffer[4]=control_out[1];
+        ozy_output_buffer[5]=control_out[2];
+        ozy_output_buffer[6]=control_out[3];
+        ozy_output_buffer[7]=control_out[4];
+    }
+
+    bytes=ozy_write(0x02,ozy_output_buffer,OZY_BUFFER_SIZE);
+    if(bytes!=OZY_BUFFER_SIZE) {
+       perror("OzyBulkWrite failed");
+    }
+
+if(tx_frame<10) {
+        dump_ozy_buffer("sent to Ozy:",tx_frame,ozy_output_buffer);
+}
+    tx_frame++;
+    current_receiver++;
+
+    if(current_receiver==receivers) {
+        current_receiver=0;
+    }
+
+}
+
+
 
 void write_ozy_output_buffer_metis() {
     int bytes;

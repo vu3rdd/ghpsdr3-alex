@@ -130,6 +130,54 @@ Of course, in remote mode, you can even run everything in the same PC, just make
 enough CPU.
 
 
+How to run an Ozy  server
+===========================
 
+In order to run a Mercury on Atlas bus, using Ozy card, first 
+a recent release of Ozy FPGA image has to be downloaded from openHPSDR
+repository, the binary image of Cypress microcontroller is available
+in the git instead.
+
+cd ~/ghpsdr3-alex/trunk/src/server
+
+wget http://svn.tapr.org/repos_sdr_hpsdr/trunk/Ozymandias/Release/Ozy_Janus_V28.rbf
+cp ../../bin/ozyfw-sdr1k.hex .
+
+The Mercury has been tested with FPGA code release 3.3, in case it needs to be
+upgraded, please refer to instructions that came with
+HPSDRProgrammer utility program found in the following page:
+
+http://openhpsdr.org/download.php
+
+Now the proper USB rules have to be configured; whilst this is not
+mandatory, it is strongly advised, so the hpsdr-server can be run 
+without gaining superuser privileges:
+
+cat > 90-ozy.rules << XXXX
+SUBSYSTEMS=="usb",ATTRS{idVendor}=="fffe",ATTRS{idProduct}=="0007",MODE:="0666"
+XXXX
+sudo mv 90-ozy.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+
+Note: the above instructions have been successfully tested on Ubuntu 14.04.
+
+When the previous conditions are fullfilled, open a new xterm and submit
+the following command:
+
+./hpsdr-server  --samplerate 96000 --fpga Ozy_Janus_V28.rbf
+
+Next, in a different xterm window, the dspserver is run:
+
+cd ~/ghpsdr3-alex/trunk/src/dspserver
+./dspserver  --lo 0  --nocorrectiq --hpsdr
+
+Finally, in a third window, the GUI has to be started:
+
+cd ~/ghpsdr3-alex/trunk/src/QtRadio
+./QtRadio -s 127.0.0.1
+
+The above commands held in case everything is run on the same system,
+if the GUI is run on a different system, the proper IP address has to be
+used.
 
 
