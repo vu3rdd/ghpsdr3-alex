@@ -37,5 +37,6 @@ int ozy_load_fpga(char *rbf_fnamep);
 int ozy_set_led(int which, int on);
 int ozy_reset_cpu(int reset);
 int ozy_load_firmware(char *fnamep);
+int ozy_load_firmware_from_memory(const char *lines[]);
 
 #endif

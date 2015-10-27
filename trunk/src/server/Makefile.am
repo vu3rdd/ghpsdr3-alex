@@ -6,6 +6,10 @@
 #endif
 
 
+
+BUILT_SOURCES = firmware.h
+
+
 bin_PROGRAMS = hpsdr-server
 
 
@@ -39,5 +43,23 @@ hpsdr_server_SOURCES = \
     semaphore.h
 
 
+nodist_hpsdr_server_SOURCES = firmware.h
+
+
+dist_pkgdata_DATA = $(srcdir)/gen_firmware.sh
+
+#
+# firmware image
+# has to be distributed in tarball but not installed
+#
+dist_check_DATA = $(srcdir)/ozyfw-sdr1k.hex
+
+#
+# Generate source file for firmware code
+#
+CLEANFILES = firmware.h
+
+firmware.h: $(srcdir)/gen_firmware.sh $(dist_check_DATA)
+	$(srcdir)/gen_firmware.sh $(srcdir)/$(dist_check_DATA) > $@
 
 

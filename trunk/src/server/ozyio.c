@@ -28,10 +28,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>    // tolower
 
 #include <libusb-1.0/libusb.h>
-
 #include "ozyio.h"
 
 #define OZY_PID (0x0007)
@@ -192,7 +192,7 @@ static int ishexit(unsigned char c) {
         return 0;
 }
 
-static int hexitsToUInt(char *p, int count) {
+static int hexitsToUInt(const char *p, int count) {
         unsigned int result = 0;
         int i;
         char c;
@@ -295,6 +295,90 @@ fprintf(stderr,"loading ozy firmware: %s\n",fnamep);
 //        fprintf(stderr, "ozy_upload_firmware: Processed %d lines.\n", linecount);
         return linecount;
 }
+
+int ozy_load_firmware_from_memory(const char *lines[]) {
+        int linecount = 0;
+        int length;
+        int addr;
+        int type;
+        const char *readbuf;
+        unsigned char wbuf[256];
+        unsigned char my_cksum;
+        unsigned char cksum;
+        int this_val;
+        int i;
+
+        fprintf(stderr,"loading ozy firmware from memory\n");
+
+        readbuf = lines[0];
+        while ( strlen (readbuf) ) {
+                
+                if ( readbuf[0] != ':' ) {
+                        fprintf(stderr, "ozy_upload_firmware: bad record\n");
+                        return 0;
+                }
+                length = hexitsToUInt(readbuf+1, 2);
+                addr = hexitsToUInt(readbuf+3, 4);
+                type = hexitsToUInt(readbuf+7, 2);
+                if ( length < 0 || addr < 0 || type < 0 ) {
+                        fprintf(stderr, "ozy_upload_firmware: bad length, addr or type\n");
+                        return 0;
+                }
+                switch ( type ) {
+                        case 0: /* record */
+                                my_cksum = (unsigned char)(length + (addr & 0xff) + ((addr >> 8) + type));
+                                for ( i = 0; i < length; i++ ) {
+                                        this_val = hexitsToUInt(readbuf+9+(i*2),2);
+#if 0
+                                        printf("i: %d val: 0x%02x\n", i, this_val);
+#endif
+
+                                        if ( this_val < 0 ) {
+                                                fprintf(stderr, "ozy_upload_firmware: bad record data\n");
+                                                return 0;
+                                        }
+                                        wbuf[i] = (unsigned char)this_val;
+                                        my_cksum += wbuf[i];
+                                }
+
+                                this_val = hexitsToUInt(readbuf+9+(length*2),2);
+                                if ( this_val < 0 ) {
+                                        fprintf(stderr, "ozy_upload_firmware: bad checksum data\n");
+                                        return 0;
+                                }
+                                cksum = (unsigned char)this_val;
+#if 0
+                                printf("\n%s", readbuf);
+                                printf("len: %d (0x%02x) addr: 0x%04x mychk: 0x%02x chk: 0x%02x",
+                                                length, length, addr, my_cksum, cksum);
+#endif
+
+                                if ( ((cksum + my_cksum) & 0xff) != 0 ) {
+                                        fprintf(stderr, "ozy_upload_firmware: bad checksum\n");
+                                        return 0;
+                                }
+                                if ( ozy_write_ram(addr, wbuf, length) < 1 ) {
+                                        fprintf(stderr, "ozy_upload_firmware: bad write\n");
+                                        return 0;
+                                }
+                                break;
+
+                        case 1: /* EOF */
+                                break;
+
+                        default: /* invalid */
+                                fprintf(stderr, "ozy_upload_firmware: invalid type\n");
+                                return 0;
+                
+                }
+                ++linecount;
+                readbuf = lines[linecount];
+
+        }
+        fprintf(stderr, "ozy_upload_firmware: Processed %d lines.\n", linecount);
+        return linecount;
+}
+
 
 int ozy_set_led(int which, int on) {
         int rc;

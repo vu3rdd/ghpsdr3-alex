@@ -51,6 +51,7 @@
 #include "util.h"
 #include "metis.h"
 #include "ozy.h"
+#include "firmware.h"
 
 #define THREAD_STACK 32768
 
@@ -626,7 +627,7 @@ int ozy_init(void) {
     // On Windows, the following is replaced by init_hpsdr() in OzyInit.c
 #ifdef __linux__
 
-    if (strlen(ozy_firmware) == 0) filePath (ozy_firmware,"ozyfw-sdr1k.hex");
+    //if (strlen(ozy_firmware) == 0) filePath (ozy_firmware,"ozyfw-sdr1k.hex");
     if (strlen(ozy_fpga) == 0)     filePath (ozy_fpga,"Ozy_Janus.rbf");
 
     // open ozy
@@ -638,7 +639,18 @@ int ozy_init(void) {
 
     // load Ozy FW
     ozy_reset_cpu(1);
-    ozy_load_firmware(ozy_firmware);
+    
+    if (strlen(ozy_firmware)) {
+       if (ozy_load_firmware(ozy_firmware)==0) {
+	       fprintf(stderr,"Unable to load microcontroller firmware.\n");
+	       exit(2);
+	   }
+	} else { 
+	   if (ozy_load_firmware_from_memory(firmware)==0) {
+	       fprintf(stderr,"Unable to load microcontroller firmware from memory.\n");
+	       exit(2);
+	   }
+	}
     ozy_reset_cpu(0);
 ozy_close();
     sleep(5);
@@ -646,7 +658,7 @@ ozy_open();
     ozy_set_led(1,1);
     if (!ozy_load_fpga(ozy_fpga)) {
 	    fprintf(stderr,"Unable to load FPGA firmware.\n");
-	    exit(2);
+	    exit(3);
     }
     ozy_set_led(1,0);
     ozy_close();
