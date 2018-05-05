@@ -332,11 +332,11 @@ void ozy_set_buffers(int buffers, int hermes) {
        control_out = control_out_hermes;
        write_ozy_output_buffer = write_ozy_output_buffer_hermes;
     } if (metis) {
-		control_out = control_out_metis;
-        write_ozy_output_buffer = write_ozy_output_buffer_metis;
+      control_out = control_out_metis;
+      write_ozy_output_buffer = write_ozy_output_buffer_metis;
     } else {
-		control_out = control_out_ozy;
-        write_ozy_output_buffer = write_ozy_output_buffer_ozy;
+      control_out = control_out_ozy;
+      write_ozy_output_buffer = write_ozy_output_buffer_ozy;
     }
 }
 
@@ -627,7 +627,7 @@ int ozy_init(void) {
     // On Windows, the following is replaced by init_hpsdr() in OzyInit.c
 #ifdef __linux__
 
-    //if (strlen(ozy_firmware) == 0) filePath (ozy_firmware,"ozyfw-sdr1k.hex");
+    if (strlen(ozy_firmware) == 0) filePath (ozy_firmware,"ozyfw-sdr1k.hex");
     if (strlen(ozy_fpga) == 0)     filePath (ozy_fpga,"Ozy_Janus.rbf");
 
     // open ozy
@@ -652,9 +652,10 @@ int ozy_init(void) {
 	   }
 	}
     ozy_reset_cpu(0);
-ozy_close();
-    sleep(5);
-ozy_open();
+    ozy_close();
+    sleep(4);
+    
+    ozy_open();
     ozy_set_led(1,1);
     if (!ozy_load_fpga(ozy_fpga)) {
 	    fprintf(stderr,"Unable to load FPGA firmware.\n");
@@ -662,7 +663,7 @@ ozy_open();
     }
     ozy_set_led(1,0);
     ozy_close();
-
+    
     ozy_open();
     rc=ozy_get_firmware_string(ozy_firmware_version,8);
     fprintf(stderr,"Ozy FX2 version: %s\n",ozy_firmware_version);
@@ -718,6 +719,7 @@ void* ozy_ep6_ep2_io_thread(void* arg) {
             fprintf(stderr,"ozy_ep6_ep2_io_thread: OzyBulkRead only read %d bytes\n",bytes);
         } else {
             // process input buffers
+            // fprintf(stdout, "processing input from ep6\n");
             for(i=0;i<ozy_buffers;i++) {
                 process_ozy_input_buffer(&input_buffer[i*OZY_BUFFER_SIZE]);
             }
@@ -850,10 +852,11 @@ void write_ozy_output_buffer_metis() {
             perror("OzyBulkWrite failed");
         }
     } else {
-        bytes=ozy_write(0x02,ozy_output_buffer,OZY_BUFFER_SIZE);
-        if(bytes!=OZY_BUFFER_SIZE) {
-            perror("OzyBulkWrite failed");
-        }
+      fprintf(stdout, "Ozy Ozy Ozy\n");
+      bytes=ozy_write(0x02,ozy_output_buffer,OZY_BUFFER_SIZE);
+      if(bytes!=OZY_BUFFER_SIZE) {
+	perror("OzyBulkWrite failed");
+      }
     }
 
     if(tx_frame<10) {
@@ -1025,13 +1028,13 @@ void process_ozy_input_buffer(unsigned char* buffer) {
     int left_sample,right_sample,mic_sample;
     float left_sample_float,right_sample_float,mic_sample_float;
 
-if(rx_frame<10) {
-    if(metis || hermes) {
+    if(rx_frame<10) {
+      if(metis || hermes) {
         dump_ozy_buffer("received from Metis:",rx_frame,buffer);
-    } else {
+      } else {
         dump_ozy_buffer("received from Ozy:",rx_frame,buffer);
+      }
     }
-}
 
     if(buffer[b++]==SYNC && buffer[b++]==SYNC && buffer[b++]==SYNC) {
 
@@ -1222,12 +1225,13 @@ void* ozy_ep4_io_thread(void* arg) {
         bytes=ozy_read(0x84,(void*)(bandscope.buffer),sizeof(buffer));
         if (bytes < 0) {
             fprintf(stderr,"ozy_ep4_io_thread: OzyBulkRead failed %d bytes\n",bytes);
-            exit(1);
+            //exit(1);
         } else if (bytes != BANDSCOPE_BUFFER_SIZE*2) {
             fprintf(stderr,"ozy_ep4_io_thread: OzyBulkRead only read %d bytes\n",bytes);
-            exit(1);
+            //exit(1);
         } else {
             // process the buffer
+            // fprintf(stdout, "processing bandscope buffer\n");
             process_bandscope_buffer(buffer);
         }
     }

@@ -179,7 +179,7 @@ qint64 Audio_playback::readData(char *data, qint64 maxlen)
 Audio::Audio() {
     audio_output=NULL;
     connected = false;
-    sampleRate=8000;
+    sampleRate=48000;
     audio_encoding = 0;
     audio_channels=1;
     audio_byte_order=QAudioFormat::LittleEndian;
@@ -191,10 +191,10 @@ Audio::Audio() {
     audio_format.setSampleType(QAudioFormat::SignedInt);
 
 #if QT_VERSION >= 0x050000
-    audio_format.setSampleRate(sampleRate+(sampleRate==8000?SAMPLE_RATE_FUDGE:0));
+    audio_format.setSampleRate(sampleRate+(sampleRate==48000?SAMPLE_RATE_FUDGE:0));
     audio_format.setChannelCount(audio_channels);
 #else
-    audio_format.setFrequency(sampleRate+(sampleRate==8000?SAMPLE_RATE_FUDGE:0));
+    audio_format.setFrequency(sampleRate+(sampleRate==48000?SAMPLE_RATE_FUDGE:0));
     audio_format.setChannels(audio_channels);
 #endif
     audio_format.setSampleSize(16);
@@ -235,6 +235,7 @@ void Audio::get_audio_devices(QComboBox* comboBox) {
 
     qDebug() << "Audio::get_audio_devices";
     for(int i=0;i<devices.length();i++) {
+      qDebug() << " found " << devices.length() << " audio devices";
         device_info=devices.at(i);
 
         qDebug() << "Audio::get_audio_devices: " << device_info.deviceName();
@@ -381,12 +382,13 @@ void Audio::select_audio(QAudioDeviceInfo info,int rate,int channels,QAudioForma
     audio_device=info;
 
 #if QT_VERSION >= 0x050000
-    audio_format.setSampleRate(sampleRate+(sampleRate==8000?SAMPLE_RATE_FUDGE:0));
+    audio_format.setSampleRate(sampleRate+(sampleRate==48000?SAMPLE_RATE_FUDGE:0));
     audio_format.setChannelCount(audio_channels);
 #else
-    audio_format.setFrequency(sampleRate+(sampleRate==8000?SAMPLE_RATE_FUDGE:0));
+    audio_format.setFrequency(sampleRate+(sampleRate==48000?SAMPLE_RATE_FUDGE:0));
     audio_format.setChannels(audio_channels);
 #endif
+    audio_format.setSampleType(QAudioFormat::SignedInt);
     audio_format.setByteOrder(audio_byte_order);
 
     if (!audio_device.isFormatSupported(audio_format)) {
